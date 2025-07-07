@@ -1,0 +1,52 @@
+from zlapi.models import Message, Mention
+from config import ADMIN
+import time
+
+ADMIN_ID = ADMIN
+
+des = {
+    'version': "1.0.1",
+    'credits': "TRBAYK (NGSON)",
+    'description': "Gửi lời mời kết "
+}
+
+def is_admin(author_id):
+    return author_id == ADMIN_ID
+
+def handle_add_group_command(message, message_object, thread_id, thread_type, author_id, client):
+    if not is_admin(author_id):
+        msg = "quyền lồn mà sài"
+        client.replyMessage(Message(text=msg), message_object, thread_id, thread_type)
+        return
+
+    try:
+        group_info = client.fetchGroupInfo(thread_id).gridInfoMap[thread_id]
+        members = group_info.get('memVerList', [])
+        total_members = len(members)
+        successful_requests = 0
+
+        for mem in members:
+            user_id = mem.split('_')[0]
+            user_name = mem.split('_')[1]
+            friend_request_message = f"Xin chào {user_name}, tôi muốn kết bạn!"
+            try:
+                client.sendFriendRequest(userId=user_id, msg=friend_request_message)
+                successful_requests += 1 
+            except Exception as e:
+                print(f"Lỗi khi gửi yêu cầu kết bạn cho {user_name}: {str(e)}")
+            time.sleep(0)
+        success_message = (
+            f"Đã gửi lời mời kết bạn đến tất cả thành viên trong nhóm.\n"
+            f"Tổng số thành viên trong nhóm: {total_members}\n"
+            f"Số lời mời đã gửi thành công: {successful_requests}/{total_members}"
+        )
+        client.replyMessage(Message(text=success_message), message_object, thread_id, thread_type)
+
+    except Exception as e:
+        error_message = f"Lỗi: {str(e)}"
+        client.send(Message(text=error_message), thread_id, thread_type)
+
+def get_szl():
+    return {
+        'kb': handle_add_group_command
+    }
